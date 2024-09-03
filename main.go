@@ -1,11 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"flag"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -47,6 +50,10 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	//flag parsing
+	port := flag.String("port", "4000", "port for app")
+	flag.Parse()
+
 	//static files
 	e.Static("/static", "static")
 
@@ -55,23 +62,31 @@ func main() {
 		templates: template.Must(template.ParseGlob("templates/*.html")),
 	}
 
-	templ, err := template.ParseGlob("templates/*.html")
-
-	if err != nil {
-		log.Fatal("Error in parsing templates: %v", err)
-	}
-
-	for _, t := range templ.Templates() {
-		fmt.Println("Template Name:", t.Name())
-	}
-
 	e.Renderer = renderer
 
 	// routes
 	e.GET("/", listContacts)
 
-	//start server
-	e.Logger.Fatal(e.Start(":8080"))
+	//handle gracefull shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	//start server in a different thread
+	go func() {
+		if err := e.Start(":" + *port); err != http.ErrServerClosed {
+			e.Logger.Fatal("Could not start the server. Shutting down")
+		}
+	}()
+	//block untill the context channel is closed (maybe due to os.Interrupt signal)
+	<-ctx.Done()
+
+	//buy 10 seconds to gracefully shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal("Could not not shutdown the server gracefully, ", err)
+	}
+
 }
 
 //handlers
