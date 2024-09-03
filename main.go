@@ -77,7 +77,6 @@ func main() {
 	}
 
 	e.Renderer = renderer
-
 	// routes
 	e.GET("/", listContacts)
 
