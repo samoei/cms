@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 )
 
 type Contact struct {
@@ -45,10 +46,23 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 
 func main() {
 	e := echo.New()
+	e.Logger.SetLevel(log.DEBUG)
 
 	//middleware
-	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.BodyLimit("35K"))
+	e.Use(middleware.Secure())
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{Timeout: 5 * time.Second}))
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Format: `{"time":"${time_rfc3339_nano}",` +
+		`"remote_ip":"${remote_ip}",` +
+		`"host":"${host}",` +
+		`"method":"${method}",` +
+		`"uri":"${uri}",` +
+		`"status":${status},` +
+		`"error":"${error}",` +
+		`"latency_human":"${latency_human}"` +
+		`}` + "\n",
+		CustomTimeFormat: "2006-01-02 15:04:05.00000"}))
 
 	//flag parsing
 	port := flag.String("port", "4000", "port for app")
