@@ -13,27 +13,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"github.com/samoei/cms/models"
 )
 
-type Contact struct {
-	ID    int
-	Name  string
-	Email string
-	Phone string
-}
-
-var contacts = []Contact{
-	{ID: 1, Name: "John Doe", Email: "john@example.com", Phone: "123-456-7890"},
-	{ID: 2, Name: "Jane Smith", Email: "jane@example.com", Phone: "7890-456-123"},
-	{ID: 3, Name: "Phil Cole", Email: "phil@example.com", Phone: "456-123-7890"},
-}
-
-var contactMap = make(map[int]Contact)
-
-func init() {
-	for _, contact := range contacts {
-		contactMap[contact.ID] = contact
-	}
+type application struct {
+	contacts []models.Contact
 }
 
 type TemplateRenderer struct {
@@ -45,6 +29,22 @@ func (t *TemplateRenderer) Render(w io.Writer, name string, data interface{}, c 
 }
 
 func main() {
+	app := &application{
+		contacts: []models.Contact{
+			{ID: 1, FirstName: "Philemon", LastName: "Samoei", Email: "phil.samoei@gmail.com", Phone: "0722511046", City: "Eldoret", DOB: "12/12/1992"},
+			{ID: 2, FirstName: "James", LastName: "Mwangi", Email: "j.mwangi@gmail.com", Phone: "0724541046", City: "Kiambu", DOB: "19/08/1996"},
+			{ID: 3, FirstName: "Alphas", LastName: "Koech", Email: "aphas3467@gmail.com", Phone: "0732511078", City: "Kapsabet", DOB: "01/03/1999"},
+			{ID: 4, FirstName: "Maryann", LastName: "Mwangi", Email: "mmwangi77@gmail.com", Phone: "0722420046", City: "Kikuyu", DOB: "07/07/1999"},
+			{ID: 5, FirstName: "Carol", LastName: "Kihara", Email: "carol.kihara99@gmail.com", Phone: "0723611302", City: "Limuru", DOB: "12/12/1992"},
+			{ID: 6, FirstName: "Mary", LastName: "Wamaitha", Email: "mary.mesh@gmail.com", Phone: "0722511046", City: "Eldoret", DOB: "12/12/1992"},
+			{ID: 7, FirstName: "Maggie", LastName: "Maina", Email: "maina.maggz@gmail.com", Phone: "0722511046", City: "Nyahurur", DOB: "12/12/1992"},
+			{ID: 8, FirstName: "Angela", LastName: "Wendo", Email: "wndanglalove@gmail.com", Phone: "0722511046", City: "Mombasa", DOB: "12/12/1992"},
+			{ID: 9, FirstName: "Peris", LastName: "Chepkoech", Email: "pkoech77@gmail.com", Phone: "0722511046", City: "Moi's Bridge", DOB: "12/12/1992"},
+			{ID: 10, FirstName: "Susan", LastName: "Githaiga", Email: "susie-mwaks@gmail.com", Phone: "0722511046", City: "Webuye", DOB: "12/12/1992"},
+			{ID: 11, FirstName: "Clinton", LastName: "Mwale", Email: "clinto.mwenyewe@gmail.com", Phone: "0722511046", City: "Machakos", DOB: "12/12/1992"},
+			{ID: 12, FirstName: "Karua", LastName: "Kihara", Email: "mrkarua.kihara@gmail.com", Phone: "0722511046", City: "Kisii", DOB: "12/12/1992"},
+		},
+	}
 	e := echo.New()
 	e.Logger.SetLevel(log.DEBUG)
 
@@ -77,8 +77,9 @@ func main() {
 	}
 
 	e.Renderer = renderer
+
 	// routes
-	e.GET("/", listContacts)
+	e.GET("/", app.listContacts)
 
 	//handle gracefull shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -87,7 +88,7 @@ func main() {
 	//start server in a different thread
 	go func() {
 		if err := e.Start(":" + *port); err != http.ErrServerClosed {
-			e.Logger.Fatal("Could not start the server. Shutting down")
+			e.Logger.Fatal("Could not start the server. Shutting down,", err)
 		}
 	}()
 	//block untill the context channel is closed (maybe due to os.Interrupt signal)
@@ -104,6 +105,6 @@ func main() {
 
 //handlers
 
-func listContacts(c echo.Context) error {
-	return c.Render(http.StatusOK, "contacts.html", contacts)
+func (a *application) listContacts(c echo.Context) error {
+	return c.Render(http.StatusOK, "contacts.html", a.contacts)
 }
